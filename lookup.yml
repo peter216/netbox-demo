@@ -1,0 +1,30 @@
+# ansible-playbook lookup.yml --skip-tags=debug
+---
+- name: Manage NetBox
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    netbox_url: "{{ lookup('ansible.builtin.env', 'NETBOX_URL') }}"
+    netbox_token: "{{ lookup('ansible.builtin.env', 'NETBOX_TOKEN') }}"
+
+  tasks:
+    - name: Get list of sites
+      ansible.builtin.set_fact:
+        sites: "{{ query('netbox.netbox.nb_lookup', 'sites', api_endpoint=netbox_url, token=netbox_token) }}"
+
+    - name: Output the raw data
+      ansible.builtin.debug:
+        msg: "{{ sites }}"
+
+    - name: Clean up the output
+      ansible.builtin.debug:
+        msg: "{{ sites | community.general.json_query('[*].value.name') }}"
+
+    - name: Create site within NetBox with only required information
+      netbox.netbox.netbox_site:
+        netbox_url: "{{ netbox_url }}"
+        netbox_token: "{{ netbox_token }}"
+        data:
+          name: Test - Colorado
+        state: present
